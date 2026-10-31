@@ -32,7 +32,7 @@ void ackPulse() {                 // pull ESP GPIO27 LOW for 300 ms (never sends
 void handle(String s) {
   s.trim(); if (s.length() == 0) return;
   lastMsg = millis();
-  if (s != "IDLE" || lastLine != "IDLE") { Serial.print("[ESP] "); Serial.println(s); }
+  if (s != lastLine) { Serial.print("[ESP] "); Serial.println(s); }   // print only changes
   lastLine = s;
   if (s.startsWith("SOS")) {
     if (mode != 1) {
