@@ -1,18 +1,18 @@
 // VEIL GUARD DESK  (Arduino Uno/Nano + 16x2 LCD)  - based on friend's code
-// LCD: 12, 11, 5, 4, 3, 2 (same as before)   Buzzer: D8   Button: D7 -> GND
+// LCD: 12, 11, 5, 4, 3, 2 (same as before)   Buzzer: D8   Button: D7 -> GND   LED: D13 -> 220R -> LED -> GND
 // From ESP:  ESP GPIO17 -> A1   (ESP sends IDLE / SOS 1 / SOS 2 / ACK)
 // To ESP:    D10 -> 1k -> ESP GPIO27   (we only pull it LOW, never 5V -> safe for ESP)
 // Power:     power bank -> Arduino USB.  Arduino 5V -> ESP VIN,  GND -> ESP GND
 //
 // SERIAL MONITOR TESTS (9600 baud, laptop USB instead of power bank):
-//   i = show all inputs     b = buzzer 1 s     l = LCD test
+//   i = show all inputs     b = buzzer 1 s     e = LED 1 s     l = LCD test
 //   s = fake SOS on desk    a = send ACK pulse to ESP (tests the D10 wire)
 //   Every message from the ESP is printed as [ESP] ...  and every button press as [BUTTON]
 #include <LiquidCrystal.h>
 #include <SoftwareSerial.h>
 
 LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
-const int BUZZER = 8, BUTTON = 7, ACK_OUT = 10;
+const int BUZZER = 8, BUTTON = 7, ACK_OUT = 10, LED = 13;
 SoftwareSerial esp(A1, A2);   // RX = A1 (from ESP GPIO17). A2 = not connected
 
 int mode = 0;                 // 0 = ready, 1 = SOS, 2 = help sent
@@ -61,6 +61,7 @@ void info() {
 
 void setup() {
   pinMode(BUZZER, OUTPUT); digitalWrite(BUZZER, LOW);
+  pinMode(LED, OUTPUT); digitalWrite(LED, LOW);
   pinMode(BUTTON, INPUT_PULLUP);
   pinMode(ACK_OUT, INPUT);
   Serial.begin(9600);
@@ -68,7 +69,7 @@ void setup() {
   lcd.begin(16, 2);
   show("VEIL SECURITY", "STARTING...");
   digitalWrite(BUZZER, HIGH); delay(150); digitalWrite(BUZZER, LOW);
-  Serial.println("VEIL desk ready. Tests: i b l s a");
+  Serial.println("VEIL desk ready. Tests: i b e l s a");
 }
 
 void loop() {
@@ -102,6 +103,7 @@ void loop() {
   if (Serial.available()) {
     char c = Serial.read();
     if (c == 'i') info();
+    else if (c == 'e') { Serial.println("LED ON 1 s"); digitalWrite(LED, HIGH); delay(1000); digitalWrite(LED, LOW); }
     else if (c == 'b') { Serial.println("Buzzer ON 1 s"); digitalWrite(BUZZER, HIGH); delay(1000); digitalWrite(BUZZER, LOW); }
     else if (c == 'l') { lcd.clear(); lcd.print("LCD TEST 0123456"); lcd.setCursor(0, 1); lcd.print("ABCDEFGHIJKLMNOP");
                          Serial.println("LCD test - all 32 boxes should show text"); delay(2500); lcdA = ""; }
@@ -114,12 +116,15 @@ void loop() {
   if (mode == 1) {
     show("!! SOS ALERT !!", sosId == 1 ? "FROM: KEYCHAIN" : sosId == 2 ? "FROM: BRACELET" : "FROM: TEST");
     digitalWrite(BUZZER, (millis() / 250) % 2);
+    digitalWrite(LED, (millis() / 250) % 2);          // LED blinks with buzzer
   } else if (mode == 2) {
     digitalWrite(BUZZER, LOW);
+    digitalWrite(LED, HIGH);                          // LED solid = help sent
     show("HELP IS COMING", "SENT TO VICTIM");
     if (millis() - helpAt > 4000) mode = 0;
   } else {
     digitalWrite(BUZZER, LOW);
+    digitalWrite(LED, linkOk && (millis() % 3000) < 60);   // tiny blink = link OK
     show("VEIL SECURITY", linkOk ? "SYSTEM READY" : "NO BASEMENT LINK");
   }
 }
