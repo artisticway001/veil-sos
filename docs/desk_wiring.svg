@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1500" height="960" viewBox="0 0 1500 960" font-family="Segoe UI, Roboto, Arial, sans-serif">
 <rect width="1500" height="960" fill="#fbfaf7"/>
-<text x="40" y="50" font-size="28" text-anchor="start" fill="#222" font-weight="800">VEIL GUARD DESK - full wiring</text>
-<text x="40" y="80" font-size="14" text-anchor="start" fill="#555" font-weight="400">Arduino Uno + 16x2 LCD + buzzer + LED + button + basement ESP32.   Red 5V tag = Arduino 5V pin.   Black GND tag = Arduino GND pin (use the breadboard + and - rails).</text>
+<text x="40" y="50" font-size="28" text-anchor="start" fill="#222" font-weight="800">VEIL GUARD DESK - full wiring (Leonardo)</text>
+<text x="40" y="80" font-size="14" text-anchor="start" fill="#555" font-weight="400">Arduino Leonardo + 16x2 LCD + buzzer + LED + button + basement ESP32.   Red 5V tag = Arduino 5V pin.   Black GND tag = Arduino GND pin (use the breadboard + and - rails).</text>
 <rect x="60" y="200" width="270" height="590" rx="14" fill="#2a9d8f"/>
 <rect x="85" y="225" width="150" height="70" rx="6" fill="#bde0c9" stroke="#1d6b61" stroke-width="2"/>
 <text x="160" y="256" font-size="16" text-anchor="middle" fill="#1d6b61" font-weight="800">16x2 LCD</text>
@@ -40,7 +40,7 @@
 <text x="316" y="755" font-size="13" text-anchor="end" fill="#fff" font-weight="700">16 K</text>
 <rect x="640" y="190" width="260" height="610" rx="16" fill="#0b6fa4"/>
 <text x="770.0" y="320" font-size="22" text-anchor="middle" fill="#fff" font-weight="800">ARDUINO</text>
-<text x="770.0" y="346" font-size="15" text-anchor="middle" fill="#cfe8f5" font-weight="600">UNO / NANO</text>
+<text x="770.0" y="346" font-size="15" text-anchor="middle" fill="#cfe8f5" font-weight="600">LEONARDO</text>
 <rect x="740.0" y="176" width="60" height="26" rx="4" fill="#bbb" stroke="#555"/>
 <text x="770.0" y="194" font-size="12" text-anchor="middle" fill="#222" font-weight="700">USB</text>
 <rect x="690" y="100" width="160" height="50" rx="10" fill="#6c757d"/>
@@ -98,7 +98,7 @@
 <circle cx="900" cy="580" r="6" fill="#ffd166" stroke="#333"/>
 <text x="886" y="585" font-size="14" text-anchor="end" fill="#fff" font-weight="800">D10</text>
 <circle cx="900" cy="648" r="6" fill="#ffd166" stroke="#333"/>
-<text x="886" y="653" font-size="14" text-anchor="end" fill="#fff" font-weight="800">A1</text>
+<text x="886" y="653" font-size="14" text-anchor="end" fill="#fff" font-weight="800">D0 (RX)</text>
 <circle cx="900" cy="706" r="6" fill="#ffd166" stroke="#333"/>
 <text x="886" y="711" font-size="14" text-anchor="end" fill="#fff" font-weight="800">5V</text>
 <circle cx="900" cy="760" r="6" fill="#ffd166" stroke="#333"/>

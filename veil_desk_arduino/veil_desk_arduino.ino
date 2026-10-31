@@ -1,6 +1,7 @@
-// VEIL GUARD DESK  (Arduino Uno/Nano + 16x2 LCD)  - based on friend's code
+// VEIL GUARD DESK  (Arduino LEONARDO + 16x2 LCD)  - based on friend's code
+// Board: Tools -> Board -> Arduino Leonardo
 // LCD: 12, 11, 5, 4, 3, 2 (same as before)   Buzzer: D8   Button: D7 -> GND   LED: D13 -> 220R -> LED -> GND
-// From ESP:  ESP GPIO17 -> A1   (ESP sends IDLE / SOS 1 / SOS 2 / ACK)
+// From ESP:  ESP GPIO17 -> D0 (RX)   (ESP sends IDLE / SOS 1 / SOS 2 / ACK)
 // To ESP:    D10 -> 1k -> ESP GPIO27   (we only pull it LOW, never 5V -> safe for ESP)
 // Power:     power bank -> Arduino USB.  Arduino 5V -> ESP VIN,  GND -> ESP GND
 //
@@ -9,11 +10,10 @@
 //   s = fake SOS on desk    a = send ACK pulse to ESP (tests the D10 wire)
 //   Every message from the ESP is printed as [ESP] ...  and every button press as [BUTTON]
 #include <LiquidCrystal.h>
-#include <SoftwareSerial.h>
 
 LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 const int BUZZER = 8, BUTTON = 7, ACK_OUT = 10, LED = 13;
-SoftwareSerial esp(A1, A2);   // RX = A1 (from ESP GPIO17). A2 = not connected
+#define esp Serial1           // Leonardo hardware serial: RX = D0 (from ESP GPIO17). D1 not connected
 
 int mode = 0;                 // 0 = ready, 1 = SOS, 2 = help sent
 int sosId = 0;
@@ -52,7 +52,7 @@ void info() {
   Serial.println("------ INPUTS ------");
   Serial.print("Button D7     : "); Serial.println(digitalRead(BUTTON) == LOW ? "PRESSED" : "up");
   Serial.print("ESP link      : ");
-  if (lastMsg == 0) Serial.println("NEVER heard ESP (check GPIO17 -> A1 and GND)");
+  if (lastMsg == 0) Serial.println("NEVER heard ESP (check ESP GPIO17 -> D0 and GND)");
   else { Serial.print("last msg "); Serial.print((millis() - lastMsg) / 1000.0); Serial.println(" s ago"); }
   Serial.print("Last ESP msg  : "); Serial.println(lastLine);
   Serial.print("Mode          : "); Serial.println(mode == 0 ? "READY" : mode == 1 ? "SOS" : "HELP SENT");
@@ -65,6 +65,7 @@ void setup() {
   pinMode(BUTTON, INPUT_PULLUP);
   pinMode(ACK_OUT, INPUT);
   Serial.begin(9600);
+  unsigned long t0 = millis(); while (!Serial && millis() - t0 < 2000);   // Leonardo USB: wait max 2 s for Serial Monitor
   esp.begin(9600);
   lcd.begin(16, 2);
   show("VEIL SECURITY", "STARTING...");
