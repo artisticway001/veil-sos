@@ -17,6 +17,7 @@ No internet needed for the SOS path (ESP-NOW radio, works in basements).
 | `veil_keychain/` | ESP32-C3 + latch | One press = SOS, then powers itself off |
 | `veil_basement_desk/` | ESP32 WROOM-32 | Catches SOS, tells desk Arduino, sends HELP COMING |
 | `veil_desk_arduino/` | Arduino Leonardo + 16x2 LCD | Shows SOS source, buzzer, guard button |
+| `veil_desk_simple/` | Arduino Leonardo (no LCD) | Buzzer + LED + guard button only |
 | `index.html` | Phone (Chrome, Android) | Live status, siren, GPS, WhatsApp/SMS/call |
 
 The phone app needs HTTPS for Bluetooth: turn on GitHub Pages (Settings -> Pages -> Deploy from branch `main`, root).

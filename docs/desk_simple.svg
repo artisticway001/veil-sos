@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="760" viewBox="0 0 1300 760" font-family="Segoe UI, Roboto, Arial, sans-serif"><rect width="1300" height="760" fill="#fbfaf7"/>
+<text x="40" y="50" font-size="28" text-anchor="start" fill="#222" font-weight="800">VEIL GUARD DESK - simple (no LCD)</text>
+<text x="40" y="80" font-size="14" text-anchor="start" fill="#555" font-weight="400">Arduino Leonardo + buzzer + LED + guard button + basement ESP32.   Code: veil_desk_simple.ino</text>
+<rect x="380" y="150" width="240" height="490" rx="16" fill="#0b6fa4"/>
+<text x="500" y="300" font-size="22" text-anchor="middle" fill="#fff" font-weight="800">ARDUINO</text>
+<text x="500" y="326" font-size="15" text-anchor="middle" fill="#cfe8f5" font-weight="600">LEONARDO</text>
+<rect x="470" y="136" width="60" height="26" rx="4" fill="#bbb" stroke="#555"/>
+<text x="500" y="154" font-size="12" text-anchor="middle" fill="#222" font-weight="700">USB</text>
+<rect x="40" y="130" width="170" height="50" rx="10" fill="#6c757d"/>
+<text x="125" y="161" font-size="14" text-anchor="middle" fill="#fff" font-weight="800">POWER BANK</text>
+<polyline points="210,155 470,155" fill="none" stroke="#444" stroke-width="5" stroke-linecap="round"/>
+<text x="340" y="145" font-size="12" text-anchor="middle" fill="#555" font-weight="400">USB cable</text>
+<circle cx="380" cy="230" r="7" fill="#ffd166" stroke="#333"/>
+<text x="396" y="235" font-size="15" text-anchor="start" fill="#fff" font-weight="800">D8</text>
+<circle cx="380" cy="380" r="7" fill="#ffd166" stroke="#333"/>
+<text x="396" y="385" font-size="15" text-anchor="start" fill="#fff" font-weight="800">D13</text>
+<circle cx="380" cy="530" r="7" fill="#ffd166" stroke="#333"/>
+<text x="396" y="535" font-size="15" text-anchor="start" fill="#fff" font-weight="800">D7</text>
+<polyline points="380,230 210,230" fill="none" stroke="#f4a261" stroke-width="4" stroke-linecap="round"/>
+<circle cx="188" cy="230" r="24" fill="#222"/>
+<text x="188" y="235" font-size="12" text-anchor="middle" fill="#fff" font-weight="800">BUZZ</text>
+<text x="222" y="216" font-size="12" text-anchor="start" fill="#d62828" font-weight="700">+ (long leg / red wire)</text>
+<polyline points="164,230 120,230" fill="none" stroke="#222" stroke-width="4" stroke-linecap="round"/>
+<rect x="70" y="218" width="50" height="24" rx="6" fill="#222"/>
+<text x="95" y="235" font-size="13" text-anchor="middle" fill="#fff" font-weight="700">GND</text>
+<text x="188" y="276" font-size="12" text-anchor="middle" fill="#777" font-weight="400">loud buzzer? use a transistor</text>
+<polyline points="380,380 205,380" fill="none" stroke="#d62828" stroke-width="4" stroke-linecap="round"/>
+<rect x="266" y="371" width="48" height="18" rx="3" fill="#e9c46a" stroke="#7a5c00" stroke-width="1.5"/>
+<text x="290" y="366" font-size="13" text-anchor="middle" fill="#7a5c00" font-weight="700">220Ω</text>
+<circle cx="188" cy="380" r="18" fill="#ff4d4d" stroke="#900" stroke-width="2"/>
+<text x="188" y="385" font-size="11" text-anchor="middle" fill="#fff" font-weight="800">LED</text>
+<text x="188" y="418" font-size="12" text-anchor="middle" fill="#900" font-weight="700">long leg (+) to resistor</text>
+<polyline points="170,380 120,380" fill="none" stroke="#222" stroke-width="4" stroke-linecap="round"/>
+<rect x="70" y="368" width="50" height="24" rx="6" fill="#222"/>
+<text x="95" y="385" font-size="13" text-anchor="middle" fill="#fff" font-weight="700">GND</text>
+<polyline points="380,530 206,530" fill="none" stroke="#2a9d8f" stroke-width="4" stroke-linecap="round"/>
+<rect x="170" y="512" width="36" height="36" rx="4" fill="#333"/><circle cx="188" cy="530" r="10" fill="#e63946"/>
+<text x="188" y="566" font-size="12" text-anchor="middle" fill="#333" font-weight="700">guard button</text>
+<polyline points="170,530 120,530" fill="none" stroke="#222" stroke-width="4" stroke-linecap="round"/>
+<rect x="70" y="518" width="50" height="24" rx="6" fill="#222"/>
+<text x="95" y="535" font-size="13" text-anchor="middle" fill="#fff" font-weight="700">GND</text>
+<circle cx="620" cy="260" r="7" fill="#ffd166" stroke="#333"/>
+<text x="604" y="265" font-size="15" text-anchor="end" fill="#fff" font-weight="800">D10</text>
+<circle cx="620" cy="360" r="7" fill="#ffd166" stroke="#333"/>
+<text x="604" y="365" font-size="15" text-anchor="end" fill="#fff" font-weight="800">D0 (RX)</text>
+<circle cx="620" cy="460" r="7" fill="#ffd166" stroke="#333"/>
+<text x="604" y="465" font-size="15" text-anchor="end" fill="#fff" font-weight="800">5V</text>
+<circle cx="620" cy="560" r="7" fill="#ffd166" stroke="#333"/>
+<text x="604" y="565" font-size="15" text-anchor="end" fill="#fff" font-weight="800">GND</text>
+<rect x="960" y="200" width="270" height="410" rx="14" fill="#1b1b1b"/>
+<text x="1095" y="232" font-size="16" text-anchor="middle" fill="#fff" font-weight="800">ESP32 WROOM-32</text>
+<polyline points="620,260 960,260" fill="none" stroke="#3a86ff" stroke-width="4" stroke-linecap="round"/>
+<rect x="736" y="251" width="48" height="18" rx="3" fill="#e9c46a" stroke="#7a5c00" stroke-width="1.5"/>
+<text x="760" y="246" font-size="13" text-anchor="middle" fill="#7a5c00" font-weight="700">1kΩ</text>
+<circle cx="960" cy="260" r="7" fill="#ffd166" stroke="#333"/>
+<text x="976" y="265" font-size="15" text-anchor="start" fill="#fff" font-weight="800">GPIO27</text>
+<text x="870" y="248" font-size="12" text-anchor="middle" fill="#3a86ff" font-weight="700">guard pressed →</text>
+<polyline points="620,360 960,360" fill="none" stroke="#ff006e" stroke-width="4" stroke-linecap="round"/>
+<circle cx="960" cy="360" r="7" fill="#ffd166" stroke="#333"/>
+<text x="976" y="365" font-size="15" text-anchor="start" fill="#fff" font-weight="800">GPIO17 (TX2)</text>
+<text x="790" y="348" font-size="12" text-anchor="middle" fill="#ff006e" font-weight="700">← SOS messages</text>
+<polyline points="620,460 960,460" fill="none" stroke="#d62828" stroke-width="6" stroke-linecap="round"/>
+<circle cx="960" cy="460" r="7" fill="#ffd166" stroke="#333"/>
+<text x="976" y="465" font-size="15" text-anchor="start" fill="#fff" font-weight="800">VIN (5V)</text>
+<text x="790" y="448" font-size="12" text-anchor="middle" fill="#d62828" font-weight="700">powers the ESP</text>
+<polyline points="620,560 960,560" fill="none" stroke="#222" stroke-width="6" stroke-linecap="round"/>
+<circle cx="960" cy="560" r="7" fill="#ffd166" stroke="#333"/>
+<text x="976" y="565" font-size="15" text-anchor="start" fill="#fff" font-weight="800">GND</text>
+<text x="790" y="548" font-size="12" text-anchor="middle" fill="#222" font-weight="700">shared ground</text>
+<text x="40" y="690" font-size="14" text-anchor="start" fill="#333" font-weight="400">All GND tags = Arduino GND pin (breadboard - rail).   ESP VIN = 5V pin, never 3V3.   Unplug the 5V wire if the ESP is also on laptop USB.</text>
+<text x="40" y="716" font-size="14" text-anchor="start" fill="#333" font-weight="700">Serial Monitor 9600 tests:  b = buzzer   e = LED   s = fake SOS   i = inputs   a = ACK wire to ESP</text>
+</svg>
