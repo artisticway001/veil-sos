@@ -1,42 +1,38 @@
-// VEIL GUARD DESK - I2C LCD version   Board: Arduino Leonardo
-// Library needed: Sketch -> Include Library -> Manage Libraries -> "LiquidCrystal I2C" by Frank de Brabander
-// LCD:    GND -> GND, VCC -> 5V, SDA -> D2, SCL -> D3   (address found automatically: 0x27 or 0x3F)
-// Buzzer: D8 -> buzzer + , buzzer - -> GND
-// LED:    D13 -> 220R -> LED long leg, short leg -> GND
-// Button: D7 -> button -> GND
-// ESP:    ESP GPIO17 -> D0 (RX)      D10 -> 1k -> ESP GPIO27
-//         Arduino 5V -> ESP VIN      GND -> ESP GND
-// Power:  power bank -> Leonardo USB
+// VEIL GUARD DESK - I2C LCD   Board: Arduino Leonardo
+// Every message shows on the LCD AND in Serial Monitor (9600) - same words.
+// Library: "LiquidCrystal I2C" by Frank de Brabander
+// LCD: GND->GND, VCC->5V, SDA->D2, SCL->D3     Buzzer: D8     LED: D13 -> 220R     Button: D7 -> GND
+// ESP: ESP GPIO17 -> D0 (RX),  D10 -> 1k -> ESP GPIO27,  5V -> ESP VIN,  GND -> ESP GND
 //
-// What happens:
-//   SOS from basement -> buzzer + LED beep fast (keychain = fast beeps, bracelet = double beeps)
-//   Guard presses button -> HELP COMING sent -> LED stays ON 4 s
-//   Idle: tiny LED blink every 3 s = basement ESP connected.  No blink = check the wires.
-//
-// SERIAL MONITOR TESTS (9600):  l = LCD test   b = buzzer 1 s   e = LED 1 s   s = fake SOS   i = inputs   a = ACK pulse to ESP
+// TESTS (type in Serial Monitor):  l = LCD   b = buzzer   e = LED   s = fake SOS   i = status   a = ACK wire
 
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
 const int BUZZER = 8, LED = 13, BUTTON = 7, ACK_OUT = 10;
-#define esp Serial1               // RX = D0 (from ESP GPIO17)
-
-int mode = 0;                     // 0 = ready, 1 = SOS, 2 = help sent
-int sosId = 0;
-unsigned long lastMsg = 0, helpAt = 0, sosAt = 0;
-String line = "", lastLine = "none";
+#define esp Serial1
 
 LiquidCrystal_I2C *lcd = nullptr;
 uint8_t lcdAddr = 0;
-String lcdA = "", lcdB = "";
+String shownA = "", shownB = "";
 
-void show(const char *a, const char *b) {
-  if (lcdA == a && lcdB == b) return;
-  lcdA = a; lcdB = b;
-  Serial.print("[LCD] "); Serial.print(a); Serial.print(" | "); Serial.println(b);
-  if (!lcd) return;
-  lcd->clear(); lcd->print(a); lcd->setCursor(0, 1); lcd->print(b);
+int mode = 0;                 // 0 = ready, 1 = SOS, 2 = help sent
+int sosId = 0;
+unsigned long lastMsg = 0, helpAt = 0, sosAt = 0, holdUntil = 0;
+String line = "";
+
+// ---------- ONE function for LCD + Serial ----------
+void say(String a, String b) {
+  if (a == shownA && b == shownB) return;          // no repeats
+  shownA = a; shownB = b;
+  Serial.println("+----------------+");
+  Serial.print("|"); Serial.print(a); for (int i = a.length(); i < 16; i++) Serial.print(' '); Serial.println("|");
+  Serial.print("|"); Serial.print(b); for (int i = b.length(); i < 16; i++) Serial.print(' '); Serial.println("|");
+  Serial.println("+----------------+");
+  if (lcd) { lcd->clear(); lcd->print(a); lcd->setCursor(0, 1); lcd->print(b); }
 }
+// show a message for some ms, then go back to normal screen
+void flash(String a, String b, unsigned long ms) { say(a, b); holdUntil = millis() + ms; }
 
 void findLcd() {
   Wire.begin();
@@ -45,60 +41,45 @@ void findLcd() {
     Wire.beginTransmission(tryAddr[i]);
     if (Wire.endTransmission() == 0) { lcdAddr = tryAddr[i]; break; }
   }
-  if (lcdAddr == 0) { Serial.println("LCD NOT FOUND - check SDA -> D2, SCL -> D3, VCC, GND"); return; }
-  Serial.print("LCD found at 0x"); Serial.println(lcdAddr, HEX);
-  lcd = new LiquidCrystal_I2C(lcdAddr, 16, 2);
-  lcd->init(); lcd->backlight();
+  if (lcdAddr) { lcd = new LiquidCrystal_I2C(lcdAddr, 16, 2); lcd->init(); lcd->backlight(); }
 }
 
 void out(bool on) { digitalWrite(BUZZER, on); digitalWrite(LED, on); }
 
-void ackPulse() {                 // pull ESP GPIO27 LOW for 300 ms (never sends 5V)
-  digitalWrite(ACK_OUT, LOW); pinMode(ACK_OUT, OUTPUT);
-  delay(300);
-  pinMode(ACK_OUT, INPUT);
+void ackPulse() {             // pull ESP GPIO27 LOW 300 ms (never 5V)
+  digitalWrite(ACK_OUT, LOW); pinMode(ACK_OUT, OUTPUT); delay(300); pinMode(ACK_OUT, INPUT);
 }
+
+String who(int id) { return id == 1 ? "KEYCHAIN" : id == 2 ? "BRACELET" : "TEST"; }
 
 void handle(String s) {
   s.trim(); if (s.length() == 0) return;
   lastMsg = millis();
-  if (s != lastLine) { Serial.print("[ESP] "); Serial.println(s); }   // print only changes
-  lastLine = s;
   if (s.startsWith("SOS")) {
-    if (mode != 1) {
-      mode = 1; sosId = s.substring(4).toInt(); sosAt = millis();
-      Serial.print("*** SOS ALERT from "); Serial.println(sosId == 1 ? "KEYCHAIN" : sosId == 2 ? "BRACELET" : "TEST");
-    }
-  } else if (s == "ACK") { mode = 2; helpAt = millis(); Serial.println("HELP COMING sent to victim"); }
-  else if (s == "IDLE" && mode == 1 && millis() - sosAt > 3000) { mode = 0; Serial.println("SOS cleared by ESP"); }
-}
-
-void info() {
-  Serial.println("------ INPUTS ------");
-  Serial.print("Button D7 : "); Serial.println(digitalRead(BUTTON) == LOW ? "PRESSED" : "up");
-  Serial.print("ESP link  : ");
-  if (lastMsg == 0) Serial.println("NEVER heard ESP (check GPIO17 -> D0 and GND)");
-  else { Serial.print("last msg "); Serial.print((millis() - lastMsg) / 1000.0); Serial.println(" s ago"); }
-  Serial.print("Last msg  : "); Serial.println(lastLine);
-  Serial.print("LCD       : "); if (lcdAddr) { Serial.print("found at 0x"); Serial.println(lcdAddr, HEX); } else Serial.println("NOT found");
-  Serial.print("Mode      : "); Serial.println(mode == 0 ? "READY" : mode == 1 ? "SOS" : "HELP SENT");
-  Serial.println("--------------------");
+    if (mode != 1) { mode = 1; sosId = s.substring(4).toInt(); sosAt = millis(); holdUntil = 0; }
+  } else if (s == "ACK") {
+    mode = 2; helpAt = millis(); holdUntil = 0;
+  } else if (s == "IDLE" && mode == 1 && millis() - sosAt > 3000) {
+    mode = 0;
+  }
 }
 
 void setup() {
   pinMode(BUZZER, OUTPUT); pinMode(LED, OUTPUT); out(false);
-  pinMode(BUTTON, INPUT_PULLUP);
-  pinMode(ACK_OUT, INPUT);
+  pinMode(BUTTON, INPUT_PULLUP); pinMode(ACK_OUT, INPUT);
   Serial.begin(9600);
-  unsigned long t0 = millis(); while (!Serial && millis() - t0 < 2000);   // Leonardo: wait max 2 s for monitor
+  unsigned long t0 = millis(); while (!Serial && millis() - t0 < 2000);
   esp.begin(9600);
   findLcd();
-  show("VEIL SECURITY", "STARTING...");
+  if (lcdAddr) { String hex = String(lcdAddr, HEX); hex.toUpperCase(); flash("VEIL SECURITY", "LCD OK 0x" + hex, 1500); }
+  else Serial.println("!! LCD NOT FOUND - check SDA->D2, SCL->D3, VCC, GND (Serial still works)");
   out(true); delay(150); out(false);
-  Serial.println("VEIL desk (I2C LCD) ready. Tests: l b e s i a");
+  Serial.println("Tests: l b e s i a");
 }
 
 void loop() {
+  unsigned long t = millis();
+
   // 1. messages from ESP
   while (esp.available()) {
     char c = esp.read();
@@ -109,43 +90,45 @@ void loop() {
   // 2. guard button
   static bool lastBtn = HIGH; static unsigned long btnT = 0;
   bool btn = digitalRead(BUTTON);
-  if (btn != lastBtn && millis() - btnT > 50) {
-    btnT = millis(); lastBtn = btn;
+  if (btn != lastBtn && t - btnT > 50) {
+    btnT = t; lastBtn = btn;
     if (btn == LOW) {
-      Serial.println("[BUTTON] pressed");
-      if (mode == 1) { Serial.println("Guard answered -> ACK to ESP"); out(false); ackPulse(); mode = 2; helpAt = millis(); }
-      else { Serial.println("(no SOS active - button works)"); out(true); delay(80); out(false); }
-    } else Serial.println("[BUTTON] released");
+      if (mode == 1) { out(false); ackPulse(); mode = 2; helpAt = millis(); holdUntil = 0; }
+      else { flash("BUTTON PRESSED", "BUTTON WORKS OK", 1500); out(true); delay(80); out(false); }
+    }
   }
 
-  // 3. serial monitor tests
+  // 3. tests
   if (Serial.available()) {
     char c = Serial.read();
-    if (c == 'i') info();
-    else if (c == 'l') {
-      Serial.println(lcd ? "LCD test - all 32 boxes should show text" : "LCD not found - check wiring, then press reset");
-      if (lcd) { lcd->clear(); lcd->print("LCD TEST 0123456"); lcd->setCursor(0, 1); lcd->print("ABCDEFGHIJKLMNOP"); delay(2500); lcdA = ""; }
+    if (c == 'l') {
+      flash("LCD TEST 0123456", "ABCDEFGHIJKLMNOP", 2500);
+      if (!lcd) Serial.println("(LCD not found - only Serial shows this)");
     }
-    else if (c == 'b') { Serial.println("Buzzer ON 1 s"); digitalWrite(BUZZER, HIGH); delay(1000); digitalWrite(BUZZER, LOW); }
-    else if (c == 'e') { Serial.println("LED ON 1 s"); digitalWrite(LED, HIGH); delay(1000); digitalWrite(LED, LOW); }
-    else if (c == 's') { Serial.println("Fake SOS - press the button to answer"); mode = 1; sosId = 9; sosAt = millis(); }
-    else if (c == 'a') { Serial.println("ACK pulse -> ESP should print 'Guard answered' (only if ESP has an SOS)"); ackPulse(); }
+    else if (c == 'b') { flash("TEST: BUZZER", "ON FOR 1 SEC", 1500); digitalWrite(BUZZER, HIGH); delay(1000); digitalWrite(BUZZER, LOW); }
+    else if (c == 'e') { flash("TEST: LED", "ON FOR 1 SEC", 1500); digitalWrite(LED, HIGH); delay(1000); digitalWrite(LED, LOW); }
+    else if (c == 's') { mode = 1; sosId = 9; sosAt = millis(); holdUntil = 0; }
+    else if (c == 'a') { flash("TEST: ACK WIRE", "PULSE TO ESP", 1500); ackPulse(); }
+    else if (c == 'i') {
+      bool ok = lastMsg != 0 && t - lastMsg < 4000;
+      String b = digitalRead(BUTTON) == LOW ? "BTN:DOWN " : "BTN:up ";
+      flash(ok ? "ESP LINK: OK" : (lastMsg ? "ESP LINK: LOST" : "ESP LINK: NONE"), b + (lcd ? "LCD:OK" : "LCD:--"), 3000);
+    }
   }
 
-  // 4. buzzer + LED
-  unsigned long t = millis();
+  // 4. screen + buzzer + LED
   if (mode == 1) {
-    show("!! SOS ALERT !!", sosId == 1 ? "FROM: KEYCHAIN" : sosId == 2 ? "FROM: BRACELET" : "FROM: TEST");
+    say("!! SOS ALERT !!", "FROM: " + who(sosId));
     if (sosId == 2) { unsigned long p = t % 1000; out(p < 120 || (p > 240 && p < 360)); }   // bracelet: double beep
-    else out((t / 200) % 2);                                                                // keychain/test: fast beeps
+    else out((t / 200) % 2);                                                                // keychain: fast beeps
   } else if (mode == 2) {
     digitalWrite(BUZZER, LOW); digitalWrite(LED, HIGH);
-    show("HELP IS COMING", "SENT TO VICTIM");
+    say("HELP IS COMING", "SENT TO " + who(sosId));
     if (t - helpAt > 4000) { mode = 0; out(false); }
   } else {
     digitalWrite(BUZZER, LOW);
-    bool linkOk = lastMsg != 0 && t - lastMsg < 4000;
-    digitalWrite(LED, linkOk && (t % 3000) < 60);
-    show("VEIL SECURITY", linkOk ? "SYSTEM READY" : "NO BASEMENT LINK");
+    bool ok = lastMsg != 0 && t - lastMsg < 4000;
+    digitalWrite(LED, ok && (t % 3000) < 60);
+    if (t > holdUntil) say("VEIL SECURITY", ok ? "SYSTEM READY" : "NO BASEMENT LINK");
   }
 }
