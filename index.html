@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14111a">
+<title>VEIL Safety</title>
+<style>
+  :root {
+    --bg: #f6f4f8; --card: #ffffff; --text: #1b1722; --muted: #6d6578; --line: #e4dfea;
+    --brand: #7b3fe4; --safe: #1f9d63; --danger: #e0313f; --warn: #d98a0b; --help: #1a73e8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14111a; --card: #1f1a27; --text: #f3eff8; --muted: #a59cb2; --line: #2f2839;
+      --brand: #a77bff; --safe: #3ccf8e; --danger: #ff4d5a; --warn: #ffb02e; --help: #5aa2ff;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14111a; --card: #1f1a27; --text: #f3eff8; --muted: #a59cb2; --line: #2f2839;
+    --brand: #a77bff; --safe: #3ccf8e; --danger: #ff4d5a; --warn: #ffb02e; --help: #5aa2ff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; transition: background .3s; }
+  body.alarm { background: var(--danger); }
+  main { max-width: 480px; margin: 0 auto; padding: 16px 16px 40px; }
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .logo { font-weight: 800; letter-spacing: .2em; font-size: 22px; }
+  .logo span { color: var(--brand); }
+  body.alarm .logo span { color: #fff; }
+  .pill { font-size: 13px; padding: 4px 10px; border-radius: 99px; background: var(--card); border: 1px solid var(--line); color: var(--muted); }
+  .pill.on { color: var(--safe); border-color: var(--safe); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px; margin-bottom: 14px; }
+  .status { text-align: center; padding: 28px 18px; }
+  .dot { width: 84px; height: 84px; border-radius: 50%; margin: 0 auto 14px; background: var(--muted); opacity: .35; }
+  .status h1 { margin: 0 0 6px; font-size: 26px; }
+  .status p { margin: 0; color: var(--muted); }
+  .s-ready .dot { background: var(--safe); opacity: 1; }
+  .s-sos .dot { background: var(--danger); opacity: 1; animation: pulse 1s infinite; }
+  .s-help .dot { background: var(--help); opacity: 1; }
+  .s-noans .dot { background: var(--warn); opacity: 1; }
+  @keyframes pulse { 0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(224,49,63,.6); } 50% { transform: scale(1.08); box-shadow: 0 0 0 18px rgba(224,49,63,0); } }
+  button, .btn { display: block; width: 100%; border: 0; border-radius: 14px; padding: 15px; font: 600 16px system-ui, sans-serif;
+    cursor: pointer; text-align: center; text-decoration: none; margin-top: 10px; background: var(--line); color: var(--text); }
+  .primary { background: var(--brand); color: #fff; }
+  .danger { background: var(--danger); color: #fff; }
+  .safe { background: var(--safe); color: #fff; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row > * { margin-top: 10px; }
+  h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 6px; }
+  label { display: block; font-size: 14px; color: var(--muted); margin-top: 10px; }
+  input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font-size: 16px; margin-top: 4px; }
+  #loc { font-size: 14px; color: var(--muted); word-break: break-all; margin-top: 4px; }
+  #log { font: 13px/1.6 ui-monospace, monospace; color: var(--muted); max-height: 180px; overflow: auto; }
+  .hide { display: none !important; }
+  .warnbox { background: var(--warn); color: #000; padding: 12px; border-radius: 12px; font-size: 14px; margin-bottom: 14px; }
+  details summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="logo">V<span>E</span>IL</div>
+    <div id="conn" class="pill">Not connected</div>
+  </header>
+
+  <div id="nobt" class="warnbox hide">Bluetooth isn't available in this browser. Open this page in <b>Chrome on Android</b>, with Bluetooth and Location turned on.</div>
+
+  <section id="statusCard" class="card status">
+    <div class="dot"></div>
+    <h1 id="title">Not connected</h1>
+    <p id="sub">Tap Connect and pick "VEIL-Bracelet"</p>
+  </section>
+
+  <button id="btnConnect" class="primary">Connect bracelet</button>
+
+  <!-- shown during SOS / no answer -->
+  <section id="sosCard" class="card hide">
+    <h2>Get help</h2>
+    <div id="loc">Getting location…</div>
+    <a id="btnWa" class="btn danger" target="_blank" rel="noopener">Send location on WhatsApp</a>
+    <div class="row">
+      <a id="btnSms" class="btn">Send SMS</a>
+      <a id="btnCall" class="btn">Call guard</a>
+    </div>
+    <div class="row">
+      <button id="btnSilence">Silence phone</button>
+      <button id="btnCancel">False alarm</button>
+    </div>
+  </section>
+
+  <section id="ctrlCard" class="card hide">
+    <h2>Bracelet</h2>
+    <div class="row">
+      <button id="btnBuzz">Test vibrate</button>
+      <button id="btnSos" class="danger">Send SOS</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Contacts</h2>
+    <label>Family / friend number (with country code, e.g. 919876543210)
+      <input id="famNum" inputmode="tel" placeholder="919876543210"></label>
+    <label>Security guard number
+      <input id="guardNum" inputmode="tel" placeholder="919876543210"></label>
+  </section>
+
+  <section class="card">
+    <h2>Activity</h2>
+    <div id="log"></div>
+  </section>
+
+  <details class="card">
+    <summary>Demo tools (no bracelet needed)</summary>
+    <div class="row">
+      <button data-sim="SOS:2">Bracelet SOS</button>
+      <button data-sim="SOS:1">Keychain SOS</button>
+      <button data-sim="HELP">Guard answered</button>
+      <button data-sim="READY">Back to safe</button>
+    </div>
+  </details>
+</main>
+
+<script>
+const SVC = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+const RX  = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
+const TX  = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
+const $ = id => document.getElementById(id);
+
+let device = null, rxChar = null, state = 'OFF', stateAt = 0, coords = null;
+let audio = null, siren = null, wakeLock = null, snatchAt = 0;
+
+// ---------- storage (safe) ----------
+function load(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
+function save(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+$('famNum').value = load('veil_fam'); $('guardNum').value = load('veil_guard');
+$('famNum').oninput = e => { save('veil_fam', e.target.value.trim()); updateLinks(); };
+$('guardNum').oninput = e => { save('veil_guard', e.target.value.trim()); updateLinks(); };
+
+function log(msg) {
+  const t = new Date().toLocaleTimeString();
+  $('log').insertAdjacentHTML('afterbegin', `<div>${t}  ${msg}</div>`);
+}
+
+// ---------- screen ----------
+function show(s) {
+  state = s; stateAt = Date.now();
+  const card = $('statusCard');
+  card.className = 'card status ' + ({READY:'s-ready', 'SOS:1':'s-sos', 'SOS:2':'s-sos', HELP:'s-help', NOANSWER:'s-noans'}[s] || '');
+  const txt = {
+    OFF:      ['Not connected', 'Tap Connect and pick "VEIL-Bracelet"'],
+    READY:    ['You are safe', 'Bracelet connected and watching'],
+    'SOS:2':  ['SOS SENT', 'From your bracelet - guard is being alerted'],
+    'SOS:1':  ['SOS SENT', 'From your keychain - guard is being alerted'],
+    HELP:     ['HELP IS COMING', 'The guard has answered your SOS'],
+    NOANSWER: ['No answer yet', 'Guard did not answer - call or message someone'],
+  }[s] || [s, ''];
+  if (s === 'SOS:2' && Date.now() - snatchAt < 5000) txt[1] = 'Bracelet was pulled off - guard is being alerted';
+  $('title').textContent = txt[0]; $('sub').textContent = txt[1];
+  const sos = s.startsWith('SOS');
+  document.body.classList.toggle('alarm', sos);
+  $('sosCard').classList.toggle('hide', !(sos || s === 'NOANSWER'));
+  $('btnCancel').classList.toggle('hide', !sos);
+  if (sos) { startSiren(); getLocation(); try { navigator.vibrate([600, 200, 600, 200, 600]); } catch (e) {} }
+  else stopSiren();
+  if (s === 'HELP') try { navigator.vibrate([300, 150, 300, 150, 300]); } catch (e) {}
+}
+
+// ---------- messages from bracelet ----------
+function handle(msg) {
+  msg = msg.trim();
+  if (msg === 'READY' && (state === 'HELP' || state === 'NOANSWER') && Date.now() - stateAt < 20000) return; // keep banner up
+  if (msg === 'READY' && state === 'READY') return;   // heartbeat
+  if (msg === 'BUZZED') { log('Bracelet vibrated'); return; }
+  if (msg.startsWith('CLASP')) { log(msg === 'CLASP:OPEN' ? 'Clasp opened' : 'Clasp closed (worn)'); return; }
+  if (msg === 'SNATCH') { snatchAt = Date.now(); log('Bracelet was PULLED OFF'); return; }
+  log({ 'SOS:2': 'SOS from bracelet', 'SOS:1': 'SOS from keychain', HELP: 'Guard answered - help coming',
+        NOANSWER: 'No answer from guard', READY: 'Safe / ready' }[msg] || msg);
+  show(msg);
+}
+
+// ---------- Bluetooth ----------
+async function connect() {
+  if (!navigator.bluetooth) { $('nobt').classList.remove('hide'); return; }
+  unlockAudio();
+  try {
+    device = await navigator.bluetooth.requestDevice({ filters: [{ namePrefix: 'VEIL' }, { services: [SVC] }], optionalServices: [SVC] });
+    device.addEventListener('gattserverdisconnected', onDisconnected);
+    await openGatt();
+    keepAwake();
+  } catch (e) { log('Connect failed: ' + e.message); }
+}
+async function openGatt() {
+  $('conn').textContent = 'Connecting…';
+  const server = await device.gatt.connect();
+  const svc = await server.getPrimaryService(SVC);
+  rxChar = await svc.getCharacteristic(RX);
+  const tx = await svc.getCharacteristic(TX);
+  await tx.startNotifications();
+  tx.addEventListener('characteristicvaluechanged', e => handle(new TextDecoder().decode(e.target.value)));
+  $('conn').textContent = 'Connected'; $('conn').classList.add('on');
+  $('btnConnect').classList.add('hide'); $('ctrlCard').classList.remove('hide');
+  log('Bracelet connected');
+  send('PING');
+}
+function onDisconnected() {
+  rxChar = null; $('conn').textContent = 'Reconnecting…'; $('conn').classList.remove('on');
+  log('Bracelet disconnected - retrying');
+  let tries = 0;
+  const retry = async () => {
+    if (!device || device.gatt.connected) return;
+    try { await openGatt(); }
+    catch (e) {
+      if (++tries < 15) setTimeout(retry, 2000);
+      else { $('conn').textContent = 'Not connected'; $('btnConnect').classList.remove('hide'); $('ctrlCard').classList.add('hide'); show('OFF'); }
+    }
+  };
+  setTimeout(retry, 1000);
+}
+async function send(cmd) {
+  if (!rxChar) { log('Not connected'); return; }
+  try { await rxChar.writeValue(new TextEncoder().encode(cmd)); } catch (e) { log('Send failed: ' + e.message); }
+}
+
+// ---------- location + links ----------
+function getLocation() {
+  if (!navigator.geolocation) { $('loc').textContent = 'Location not available'; return; }
+  $('loc').textContent = 'Getting location…';
+  navigator.geolocation.getCurrentPosition(p => {
+    coords = p.coords;
+    $('loc').textContent = `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}  (±${Math.round(coords.accuracy)} m)`;
+    updateLinks();
+  }, err => { $('loc').textContent = 'Location blocked - allow it in Chrome'; updateLinks(); },
+  { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
+}
+function updateLinks() {
+  const fam = load('veil_fam').replace(/\D/g, ''), guard = load('veil_guard').replace(/\D/g, '');
+  const map = coords ? `https://maps.google.com/?q=${coords.latitude},${coords.longitude}` : '(location not available)';
+  const text = encodeURIComponent(`VEIL SOS! I need help. My location: ${map}`);
+  $('btnWa').href = `https://wa.me/${fam}?text=${text}`;
+  $('btnSms').href = `sms:${fam ? '+' + fam : ''}?body=${text}`;
+  $('btnCall').href = guard ? `tel:+${guard}` : '#';
+}
+updateLinks();
+
+// ---------- siren ----------
+function unlockAudio() {
+  try { if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); } catch (e) {}
+}
+function startSiren() {
+  if (!audio || siren) return;
+  const o = audio.createOscillator(), g = audio.createGain(), lfo = audio.createOscillator(), lg = audio.createGain();
+  o.type = 'sawtooth'; o.frequency.value = 900; lfo.frequency.value = 1.5; lg.gain.value = 350;
+  lfo.connect(lg); lg.connect(o.frequency); o.connect(g); g.connect(audio.destination); g.gain.value = 0.25;
+  o.start(); lfo.start(); siren = { o, lfo };
+}
+function stopSiren() { if (siren) { try { siren.o.stop(); siren.lfo.stop(); } catch (e) {} siren = null; } }
+
+async function keepAwake() { try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {} }
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && device) keepAwake(); });
+
+// ---------- buttons ----------
+$('btnConnect').onclick = connect;
+$('btnBuzz').onclick = () => send('BUZZ');
+$('btnSos').onclick = () => { if (confirm('Send SOS to the guard now?')) send('SOS'); };
+$('btnCancel').onclick = () => { send('STOP'); if (!rxChar) handle('READY'); };
+$('btnSilence').onclick = () => stopSiren();
+document.querySelectorAll('[data-sim]').forEach(b => b.onclick = () => { unlockAudio(); log('Demo: ' + b.dataset.sim); show(b.dataset.sim); });
+
+if (!navigator.bluetooth) $('nobt').classList.remove('hide');
+log('App ready');
+</script>
+</body>
