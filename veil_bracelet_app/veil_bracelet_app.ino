@@ -1,4 +1,5 @@
-// VEIL BRACELET v4 = v3 + CLASP REED SWITCH (snatch alarm)
+// VEIL BRACELET v5 = v4 + desk-link fixes for Bluetooth (radio channel re-set, Bluetooth pauses while sending,
+//                    faster repeats).  USE_APP 0 = no Bluetooth (desk link exactly like the version that worked)
 // Everything from v2 works exactly the same. Bluetooth only ADDS the phone app.
 //
 // Arduino Tools menu:
@@ -13,12 +14,16 @@
 // Phone app: shows everything live, can test-buzz, send SOS, cancel
 // Serial 115200: t = test SOS, m = motor test, c = clasp status, r = reed alarm on/off
 
+#define USE_APP 1     // 1 = phone app ON.  If the desk still gets nothing, set 0 and upload.
+
 #include <WiFi.h>
 #include <esp_now.h>
 #include <esp_wifi.h>
+#if USE_APP
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLE2902.h>
+#endif
 
 // ---- pins: keep the numbers that WORK on your board ----
 #define MOTOR_PIN 5   // -> 1k -> BC547 base
@@ -40,18 +45,20 @@ volatile bool gotHelp = false, gotKey = false;
 bool sosActive = false;
 uint8_t sosId = MY_ID;
 unsigned long sosStart = 0, lastSend = 0, holdStart = 0;
+int sendCount = 0;
 
 // clasp / reed
 bool reedOn = true, claspClosed = false, armed = false, warning = false, blockHold = false;
 unsigned long closedSince = 0, warnStart = 0;
 
 // ---------- Bluetooth (phone app) ----------
-BLECharacteristic *txChar = nullptr;
 volatile bool bleConnected = false;
 bool wasConnected = false;
 volatile char appCmd = 0;
 unsigned long lastBeat = 0;
 
+#if USE_APP
+BLECharacteristic *txChar = nullptr;
 class ServerCB : public BLEServerCallbacks {
   void onConnect(BLEServer *s) { bleConnected = true; }
   void onDisconnect(BLEServer *s) { bleConnected = false; }
@@ -65,13 +72,17 @@ class RxCB : public BLECharacteristicCallbacks {
     else if (v == "PING") appCmd = 'p';
   }
 };
+#endif
 
 void phone(const char *s, bool quiet = false) {
   if (!quiet) Serial.printf("[app] %s\n", s);
+#if USE_APP
   if (bleConnected && txChar) { txChar->setValue((uint8_t *)s, strlen(s)); txChar->notify(); }
+#endif
 }
 const char *stateText() { return !sosActive ? "READY" : (sosId == 1 ? "SOS:1" : "SOS:2"); }
 
+#if USE_APP
 void setupBLE() {
   BLEDevice::init("VEIL-Bracelet");
   BLEServer *srv = BLEDevice::createServer();
@@ -85,9 +96,12 @@ void setupBLE() {
   BLEAdvertising *adv = BLEDevice::getAdvertising();
   adv->addServiceUUID(SVC_UUID);
   adv->setScanResponse(true);
+  adv->setMinInterval(800);      // slower advertising = more radio time for the desk
+  adv->setMaxInterval(1200);
   BLEDevice::startAdvertising();
   Serial.println("Bluetooth ON: VEIL-Bracelet");
 }
+#endif
 
 // ---------- radio (basement + keychain) - same as v2 ----------
 void onPacket(const uint8_t *d, int len) {
@@ -104,12 +118,25 @@ void onRecv(const uint8_t *mac, const uint8_t *d, int len) { onPacket(d, len); }
 void buzz(int ms) { digitalWrite(MOTOR_PIN, HIGH); delay(ms); digitalWrite(MOTOR_PIN, LOW); }
 
 void sendSOS() {
-  for (uint8_t i = 0; i < 8; i++) { Msg m = {'V', 1, sosId, i}; esp_now_send(BCAST, (uint8_t *)&m, sizeof(m)); delay(25); }
-  lastSend = millis();
-  Serial.printf("SOS sent (id=%d)\n", sosId);
+#if USE_APP
+  if (!bleConnected) BLEDevice::getAdvertising()->stop();   // radio fully free for the desk
+#endif
+  esp_wifi_set_channel(CHANNEL, WIFI_SECOND_CHAN_NONE);      // make sure we are on the desk's channel
+  int ok = 0;
+  for (uint8_t i = 0; i < 8; i++) {
+    Msg m = {'V', 1, sosId, i};
+    if (esp_now_send(BCAST, (uint8_t *)&m, sizeof(m)) == ESP_OK) ok++;
+    delay(40);
+  }
+#if USE_APP
+  if (!bleConnected) BLEDevice::startAdvertising();
+#endif
+  lastSend = millis(); sendCount++;
+  uint8_t ch; wifi_second_chan_t sc; esp_wifi_get_channel(&ch, &sc);
+  Serial.printf("SOS sent to desk (id=%d, %d/8 ok, channel %d, try %d)\n", sosId, ok, ch, sendCount);
 }
 void startSOS(uint8_t id) {
-  sosId = id; sosActive = true; sosStart = millis();
+  sosId = id; sosActive = true; sosStart = millis(); sendCount = 0;
   sendSOS();
   phone(id == 1 ? "SOS:1" : "SOS:2");
 }
@@ -127,7 +154,12 @@ void setup() {
   esp_now_peer_info_t p = {}; memcpy(p.peer_addr, BCAST, 6); p.channel = CHANNEL; p.encrypt = false;
   esp_now_add_peer(&p); esp_now_register_recv_cb(onRecv);
 
+#if USE_APP
   setupBLE();
+  esp_wifi_set_channel(CHANNEL, WIFI_SECOND_CHAN_NONE);   // re-set channel after Bluetooth starts
+#endif
+  uint8_t ch; wifi_second_chan_t sc; esp_wifi_get_channel(&ch, &sc);
+  Serial.printf("Radio channel: %d (desk uses %d)\n", ch, CHANNEL);
 
   Serial.println("VEIL bracelet ready. Hold touch 1 s = SOS. t = test SOS, m = motor test");
   buzz(200);
@@ -203,13 +235,15 @@ void loop() {
       for (int i = 0; i < 3; i++) { buzz(600); delay(300); }
     } }
 
-  if (sosActive && millis() - lastSend > 10000) sendSOS();                                        // resend every 10 s
+  if (sosActive && millis() - lastSend > (sendCount < 10 ? 3000UL : 10000UL)) sendSOS();          // every 3 s, later 10 s
   if (sosActive && millis() - sosStart > 120000) { sosActive = false; Serial.println("No answer - stopped"); phone("NOANSWER"); }
 
   // Bluetooth housekeeping
+#if USE_APP
   if (bleConnected && !wasConnected) { wasConnected = true; Serial.println("Phone connected"); delay(500); phone(stateText()); }
   if (!bleConnected && wasConnected) { wasConnected = false; Serial.println("Phone disconnected"); delay(300); BLEDevice::startAdvertising(); }
   if (bleConnected && millis() - lastBeat > 3000) { lastBeat = millis(); if (!sosActive) phone("READY", true); }
+#endif
 
   delay(10);
 }
